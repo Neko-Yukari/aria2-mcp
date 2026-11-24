@@ -5,7 +5,7 @@
   "type": "module",
   "main": "./index.mjs",
   "bin": {
-    "aria2-mcp": "./server.mjs"
+    "aria2-mcp": "server.mjs"
   },
   "mcpName": "io.github.Neko-Yukari/aria2-mcp",
   "files": [
