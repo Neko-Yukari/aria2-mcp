@@ -87,9 +87,13 @@ Magpie automatically serves its tools to every connected agent over its built-in
 | `download_control` | `control` | `pause`, `resume`, or `cancel` a download by GID (`cancel` retains partial files). |
 | `download_wait` | `wait` | Wait cleanly (up to 120s in MCP, 50s in Magpie) for completion/error/pause without tight polling loops. |
 
-### Long Downloads: CLI Reactive Waiter
+### Completion & Progress Notifications
 
-For multi-minute downloads in agents that wake up automatically when a background shell task exits, run:
+Because MCP hosts differ in how they handle server-initiated events, `aria2-mcp` supports three layers:
+
+1. **In-call waiting (`download_wait` + `notifications/progress`)**: For short/medium files, call `download_wait`. When the MCP client passes `_meta.progressToken`, `aria2-mcp` streams standard MCP `notifications/progress` updates as bytes arrive.
+2. **Proactive MCP notifications (`notifications/message` + optional `claude/channel`)**: Downloads submitted via `download_submit` are watched in the background (every 5s by default, configurable via `ARIA2_NOTIFY_POLL_MS`). When a download completes or errors, `aria2-mcp` emits a standard MCP `notifications/message` (never leaking URLs or credentials) and, for clients advertising `experimental["claude/channel"]` (or with `ARIA2_CLAUDE_CHANNEL=1`), also emits `notifications/claude/channel`.
+3. **CLI Reactive Waiter (`--wait <gid>`)**: For multi-minute downloads in agents that wake up automatically when a background shell task exits (e.g., Antigravity, Claude Code, Codex), run:
 
 ```bash
 npx -y aria2-mcp --wait <gid> [--timeout 3600]

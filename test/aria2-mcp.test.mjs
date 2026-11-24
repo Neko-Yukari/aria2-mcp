@@ -146,6 +146,7 @@ describe('integration: stdio MCP, CLI --wait, Magpie tools, and external RPC', (
   let downloadDir;
   let mcpProc;
   let pending;
+  let notifications;
   let nextId = 1;
   let mcpStderr = '';
 
@@ -159,6 +160,16 @@ describe('integration: stdio MCP, CLI --wait, Magpie tools, and external RPC', (
       });
       mcpProc.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n');
     });
+  }
+
+  async function waitForNotification(predicate, timeoutMs = 8000) {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      const hit = notifications.find(predicate);
+      if (hit) return hit;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    throw new Error('Timed out waiting for MCP notification');
   }
 
   before(async () => {
@@ -203,10 +214,11 @@ describe('integration: stdio MCP, CLI --wait, Magpie tools, and external RPC', (
     httpPort = httpServer.address().port;
 
     pending = new Map();
+    notifications = [];
     mcpProc = spawn(process.execPath, [SERVER_FILE], {
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
-      env: { ...process.env, ARIA2_DATA_DIR: dataDir },
+      env: { ...process.env, ARIA2_DATA_DIR: dataDir, ARIA2_NOTIFY_POLL_MS: '200', ARIA2_CLAUDE_CHANNEL: '1' },
     });
     mcpProc.stderr.on('data', (d) => {
       mcpStderr += d.toString();
@@ -214,6 +226,10 @@ describe('integration: stdio MCP, CLI --wait, Magpie tools, and external RPC', (
     const rl = readline.createInterface({ input: mcpProc.stdout });
     rl.on('line', (line) => {
       const msg = JSON.parse(line);
+      if (msg.id === undefined && msg.method) {
+        notifications.push(msg);
+        return;
+      }
       const waiter = pending.get(msg.id);
       if (waiter) {
         pending.delete(msg.id);
@@ -265,13 +281,18 @@ describe('integration: stdio MCP, CLI --wait, Magpie tools, and external RPC', (
     const ping = await mcpCall('ping', {});
     assert.deepEqual(ping.result, {});
 
+    const setLevel = await mcpCall('logging/setLevel', { level: 'notice' });
+    assert.deepEqual(setLevel.result, {});
+    const badLevel = await mcpCall('logging/setLevel', { level: 'bogus' });
+    assert.equal(badLevel.error.code, -32602);
+
     const tools = await mcpCall('tools/list', {});
     assert.deepEqual(
       tools.result.tools.map((t) => t.name),
       ['download_submit', 'download_status', 'download_list', 'download_control', 'download_wait'],
     );
 
-    // Fast download + wait
+    // Fast download + wait with progressToken -> emits notifications/progress
     const sub1 = await mcpCall('tools/call', {
       name: 'download_submit',
       arguments: {
@@ -289,11 +310,34 @@ describe('integration: stdio MCP, CLI --wait, Magpie tools, and external RPC', (
     const w1 = await mcpCall('tools/call', {
       name: 'download_wait',
       arguments: { gid: s1.gid, timeout_seconds: 15 },
+      _meta: { progressToken: 'prog-1' },
     });
     const w1Data = JSON.parse(w1.result.content[0].text);
     assert.equal(w1Data.status, 'complete');
     assert.equal(w1Data.timedOut, false);
     assert.equal(await fs.readFile(path.join(downloadDir, 'hello.txt'), 'utf8'), 'hello-from-aria2-mcp');
+    assert.ok(notifications.some((n) => n.method === 'notifications/progress' && n.params?.progressToken === 'prog-1'));
+
+    // Background completion push notification (without calling download_wait)
+    const subBg = await mcpCall('tools/call', {
+      name: 'download_submit',
+      arguments: {
+        url: `http://127.0.0.1:${httpPort}/hello.txt`,
+        directory: downloadDir,
+        filename: 'bg-notify.txt',
+        proxy: 'direct',
+      },
+    });
+    const sBg = JSON.parse(subBg.result.content[0].text);
+    const logNotif = await waitForNotification(
+      (n) => n.method === 'notifications/message' && n.params?.data?.gid === sBg.gid && n.params?.data?.event === 'download_complete',
+    );
+    assert.equal(logNotif.params.level, 'notice');
+    assert.equal(logNotif.params.data.filename, 'bg-notify.txt');
+    const chanNotif = await waitForNotification(
+      (n) => n.method === 'notifications/claude/channel' && n.params?.meta?.gid === sBg.gid,
+    );
+    assert.equal(chanNotif.params.meta.status, 'complete');
 
     // Non-overwrite check
     const subDup = await mcpCall('tools/call', {

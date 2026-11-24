@@ -87,9 +87,13 @@ Magpie 会自动通过内置 MCP 路由把工具暴露给所有已连接的 Agen
 | `download_control` | `control` | 按 GID 执行 `pause` / `resume` / `cancel`（取消保留部分文件不删除）。 |
 | `download_wait` | `wait` | 无紧轮询地等待任务结束或暂停（MCP 上限 120 秒，Magpie 插件上限 50 秒）。 |
 
-### 大文件后台唤醒（CLI `--wait` 模式）
+### 下载进度与完成提醒
 
-对于几分钟以上的大文件，可在支持后台任务完成唤醒的 Agent 里用后台 shell 运行：
+不同 MCP 宿主对服务端主动推送的支持程度不同，`aria2-mcp` 提供三层机制：
+
+1. **单次等待 + 实时进度（`download_wait` + `notifications/progress`）**：短/中等文件直接调用 `download_wait`；如果宿主传了 `_meta.progressToken`，等待期间会持续推送标准 MCP `notifications/progress` 字节进度。
+2. **后台主动推送（`notifications/message` + 可选 `claude/channel`）**：通过 `download_submit` 提交的任务会在后台按 5 秒间隔监听（可用 `ARIA2_NOTIFY_POLL_MS` 调整）；完成或失败后主动发送标准 MCP `notifications/message`（不含 URL 和凭据），对声明 `experimental["claude/channel"]`（或开启 `ARIA2_CLAUDE_CHANNEL=1`）的客户端还会额外发送 `notifications/claude/channel`。
+3. **大文件后台唤醒（CLI `--wait` 模式）**：对于几分钟以上的大文件，在支持后台命令完成唤醒的 Agent（如 AGY / Claude Code / Codex）里用后台 shell 运行：
 
 ```bash
 npx -y aria2-mcp --wait <gid> [--timeout 3600]
