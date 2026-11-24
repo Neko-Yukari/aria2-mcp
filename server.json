@@ -1,0 +1,59 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Neko-Yukari/aria2-mcp",
+  "title": "aria2-mcp",
+  "description": "Zero-config local aria2 download manager MCP server for AI agents with fail-closed OS proxy safety, resumable sessions, and non-destructive filenames.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/Neko-Yukari/aria2-mcp",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "aria2-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "ARIA2_BIN",
+          "description": "Optional explicit path to the aria2c binary (auto-detected from PATH and common install locations by default).",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "ARIA2_DATA_DIR",
+          "description": "Optional directory for local daemon rpc.json and downloads.session.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "ARIA2_DEFAULT_DIR",
+          "description": "Optional default download directory (defaults to ~/Downloads).",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "ARIA2_DEFAULT_PROXY",
+          "description": "Optional default proxy mode: system (default), direct, or explicit http://host:port.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "ARIA2_RPC_URL",
+          "description": "Optional existing/remote aria2 JSON-RPC endpoint URL; skips spawning a local daemon when set.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "ARIA2_RPC_SECRET",
+          "description": "Optional RPC secret token when using ARIA2_RPC_URL.",
+          "isRequired": false,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}

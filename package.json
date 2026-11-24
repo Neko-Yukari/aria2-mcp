@@ -1,0 +1,63 @@
+{
+  "name": "aria2-mcp",
+  "version": "0.1.0",
+  "description": "Zero-config aria2 MCP server and Magpie tools plugin for AI coding agents — auto-managed local aria2c daemon, fail-closed OS proxy safety, resumable sessions, and non-destructive filenames.",
+  "type": "module",
+  "main": "./index.mjs",
+  "bin": {
+    "aria2-mcp": "./server.mjs"
+  },
+  "mcpName": "io.github.Neko-Yukari/aria2-mcp",
+  "files": [
+    "index.mjs",
+    "server.mjs",
+    "lib/",
+    "server.json",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Neko-Yukari"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Neko-Yukari/aria2-mcp.git"
+  },
+  "homepage": "https://github.com/Neko-Yukari/aria2-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/Neko-Yukari/aria2-mcp/issues"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "aria2",
+    "aria2c",
+    "download",
+    "download-manager",
+    "magpie",
+    "magpie-plugin",
+    "magpie-tools",
+    "ai-agent",
+    "claude-code",
+    "codex",
+    "opencode"
+  ],
+  "magpie": {
+    "name": "Aria2 Download",
+    "summary": {
+      "en": "Zero-config local aria2 download queue for AI agents with OS proxy safety, resumable sessions, and non-destructive filenames.",
+      "zh": "零配置本地 aria2 后台下载工具：自动托管守护进程、系统代理探活防退化、断点续传、防覆盖且不回显凭据。"
+    },
+    "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f172a'/%3E%3Cpath d='M32 14v24m0 0l-10-10m10 10l10-10' stroke='%2338bdf8' stroke-width='5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Cpath d='M16 48h32' stroke='%23e2e8f0' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E"
+  }
+}
